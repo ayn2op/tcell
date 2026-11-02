@@ -1890,3 +1890,38 @@ func TestMouseDisabledPreventsNativeConsoleMouse(t *testing.T) {
 		t.Fatalf("native console mouse started despite TCELL_MOUSE=disable")
 	}
 }
+
+func TestWriteString(t *testing.T) {
+	mt := &spyTty{MockTerm: vt.NewMockTerm(vt.MockOptSize{X: 80, Y: 24})}
+	scr, err := NewTerminfoScreenFromTty(mt)
+	if err != nil {
+		t.Fatalf("failed to get terminal: %v", err)
+	}
+	if err := scr.Init(); err != nil {
+		t.Fatalf("failed to initialize screen: %v", err)
+	}
+	defer scr.Fini()
+
+	const seq = "\x1b_Gi=1;AAAA\x1b\\"
+	before := len(mt.Output())
+	if n, err := scr.WriteString(seq); n != len(seq) || err != nil {
+		t.Fatalf("WriteString = %d, %v", n, err)
+	}
+	if delta := mt.Output()[before:]; strings.Contains(delta, seq) {
+		t.Fatalf("written before Show: %q", delta)
+	}
+
+	scr.PutStr(0, 0, "x")
+	scr.Show()
+	delta := mt.Output()[before:]
+	i, j := strings.Index(delta, seq), strings.Index(delta, "x")
+	if i < 0 || j < i {
+		t.Fatalf("sequence not written before the cells: %q", delta)
+	}
+
+	before = len(mt.Output())
+	scr.Show()
+	if strings.Contains(mt.Output()[before:], seq) {
+		t.Fatal("sequence written again by the next Show")
+	}
+}

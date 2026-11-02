@@ -1129,7 +1129,7 @@ func (t *tScreen) draw() {
 	// make no style assumptions
 	t.curstyle = styleInvalid
 
-	t.buf.Reset()
+	// buf holds what WriteString queued, which goes before the cells, as they may refer to it
 	t.buffering = true
 	t.startBuffering()
 	defer func() {
@@ -1622,6 +1622,12 @@ func (t *tScreen) Resume() error {
 
 func (t *tScreen) Tty() (Tty, bool) {
 	return t.tty, true
+}
+
+func (t *tScreen) WriteString(s string) (int, error) {
+	t.Lock()
+	defer t.Unlock()
+	return t.buf.WriteString(s)
 }
 
 func isSTTerminal(term string) bool {

@@ -15,6 +15,7 @@
 package tcell
 
 import (
+	"io"
 	"sync"
 	"unicode/utf8"
 
@@ -232,7 +233,17 @@ type Screen interface {
 
 	// Tty returns the underlying Tty. If the screen is not a terminal, the
 	// returned bool will be false
+	//
+	// Deprecated: Use WriteString to write escape sequences, and EventUnknown
+	// to receive the replies to them.
 	Tty() (Tty, bool)
+
+	// StringWriter writes s, such as escape sequences, to the screen's buffer
+	// as is, queuing it for the terminal. The next Show sends it, before the
+	// cells that changed. Replies that tcell does not interpret arrive as
+	// EventUnknown. Applications are responsible for what they write, and for
+	// undoing it before exiting.
+	io.StringWriter
 
 	// SetTitle sets a window title on the screen.
 	// Terminals may be configured to ignore this, or unable to.
@@ -368,6 +379,7 @@ type screenImpl interface {
 	SetSize(int, int)
 	SetTitle(string)
 	Tty() (Tty, bool)
+	io.StringWriter
 	SetClipboard([]byte)
 	GetClipboard()
 	HasClipboard() bool
